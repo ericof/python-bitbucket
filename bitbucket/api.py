@@ -83,6 +83,12 @@ class BitBucket(object):
         url = api_base + 'emails/'
         return json.loads(self.load_url(url))
 
+    def __repr__(self):
+        extra = ''
+        if all((self.username, self.password)):
+            extra = ' (auth: %s)' % self.username
+        return '<BitBucket API%s>' % extra
+
 class User(object):
     """API encapsulation for user related bitbucket queries."""
     def __init__(self, bb, username):
