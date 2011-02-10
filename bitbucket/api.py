@@ -10,11 +10,15 @@ https://github.com/dustin/py-github
 from urllib2 import Request, urlopen
 from urllib import urlencode
 from functools import wraps
+import datetime
+import time
 
 try:
     import json
 except ImportError:
     import simplejson as json
+
+__all__ = ['AuthenticationRequired', 'to_datetime', 'BitBucket']
 
 api_base = 'https://api.bitbucket.org/1.0/'
 api_toplevel = 'https://api.bitbucket.org/'
@@ -43,6 +47,10 @@ def smart_encode(**kwargs):
         return ''
     return urlencode(args)
 
+def to_datetime(timestring):
+    """Convert one of the bitbucket API's timestamps to a datetime object."""
+    format = '%Y-%m-%d %H:%M:%S'
+    return datetime.datetime(*time.strptime(timestring, format)[:7])
 
 class BitBucket(object):
     """Main bitbucket class.  Use an instantiated version of this class
@@ -102,8 +110,11 @@ class User(object):
         user_data = self.get()
         return user_data['repositories']
 
-    def events(self):
+    def events(self, start=None, limit=None):
+        query = smart_encode(start=start, limit=limit)
         url = api_base + 'users/%s/events/' % self.username
+        if query:
+            url += '?%s' % query
         return json.loads(self.bb.load_url(url))
 
     def get(self):
