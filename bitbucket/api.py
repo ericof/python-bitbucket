@@ -7,7 +7,7 @@ https://github.com/dustin/py-github
 
 """
 
-from urllib2 import Request, urlopen
+from urllib2 import Request, urlopen, URLError
 from urllib import urlencode
 from functools import wraps
 import datetime
@@ -60,15 +60,19 @@ class BitBucket(object):
         self.password = password
         # extended API support
 
-    def build_request(self, url):
+    def build_request(self, url, data=None):
         if not all((self.username, self.password)):
-            return Request(url)
+            return Request(url,data)
         auth = '%s:%s' % (self.username, self.password)
         auth = {'Authorization': 'Basic %s' % (auth.encode('base64').strip())}
-        return Request(url, None, auth)
+        if data:
+            data = urlencode(data)
+        return Request(url, data, auth)
 
-    def load_url(self, url, quiet=False):
-        request = self.build_request(url)
+    def load_url(self, url, quiet=False, method=None, data=None):
+        request = self.build_request(url,data)
+        if method:
+            request.get_method = lambda : method
         try:
             result = urlopen(request).read()
         except:
@@ -84,7 +88,29 @@ class BitBucket(object):
 
     def repository(self, username, slug):
         return Repository(self, username, slug)
-
+    
+    @requires_authentication
+    def new_repository(self,name,**data):
+        """Create a new repository with the given name
+           for the authenticated user.
+           Return a Repository object
+        """
+        url = api_base + 'repositories/'
+        data['name'] = name
+        response = json.loads(self.load_url(url,data=data))
+        if 'slug' in response:
+            return self.repository(self.username,response['slug'])
+        
+    @requires_authentication
+    def remove_repository(self,slug):
+        """Given a slug, remove a repository from the 
+           authenticated user"""
+        url = api_base + 'repositories/%s/%s' % (self.username,slug)
+        method = 'DELETE'
+        self.load_url(url,method=method)
+        return True
+        
+        
     @requires_authentication
     def emails(self):
         """Returns a list of configured email addresses for the authenticated user."""
