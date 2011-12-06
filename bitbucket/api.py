@@ -89,6 +89,11 @@ class BitBucket(object):
     def repository(self, username, slug):
         return Repository(self, username, slug)
     
+    @property
+    @requires_authentication
+    def ssh_keys(self):
+        return SSHKeys(self)
+
     @requires_authentication
     def new_repository(self,name,**data):
         """Create a new repository with the given name
@@ -220,3 +225,31 @@ class Issue(object):
     def __repr__(self):
         return '<Issue #%s on %s\'s %s>' % (self.number, self.username, self.slug)
 
+class SSHKeys(object):
+
+    def __init__(self, bb):
+        self.bb = bb
+
+    def _url(self, subPath=None):
+        _url = r"https://api.bitbucket.org/1.0/ssh-keys/"
+        if subPath:
+            _url += subPath.strip("/")
+            _url += "/"
+        return _url
+
+    def get(self):
+        return json.loads(self.bb.load_url(self._url()))
+
+    def delete(self, pk):
+        _pk = int(pk) # Key ID has to be integer
+        return self.bb.load_url(
+            self._url(str(_pk)),
+            method="DELETE",
+        )
+
+    def add(self, key):
+        return json.loads(self.bb.load_url(
+            self._url(),
+            method="POST",
+            data={"key": key},
+        ))
