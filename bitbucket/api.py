@@ -65,7 +65,7 @@ class BitBucket(object):
             return Request(url,data)
         auth = '%s:%s' % (self.username, self.password)
         auth = {'Authorization': 'Basic %s' % (auth.encode('base64').strip())}
-        if data:
+        if data and not isinstance(data, (str, unicode)):
             data = urlencode(data)
         return Request(url, data, auth)
 
@@ -203,6 +203,26 @@ class Repository(object):
     def followers(self):
         url = self.base_url + 'followers/'
         return json.loads(self.bb.load_url(url))
+
+    @requires_authentication
+    def services(self):
+        url = self.base_url + 'services/'
+        return json.loads(self.bb.load_url(url))
+
+    @requires_authentication
+    def new_service(self, **data):
+        url = self.base_url + 'services/'
+        return json.loads(self.bb.load_url(url, method="POST", data=data))
+
+    @requires_authentication
+    def privileges(self):
+        url = api_base + 'privileges/%s/%s' % (self.username, self.slug)
+        return json.loads(self.bb.load_url(url))
+
+    @requires_authentication
+    def set_privilege(self, user, privilege):
+        url = api_base + 'privileges/%s/%s/%s/' % (self.username, self.slug, user)
+        return json.loads(self.bb.load_url(url, method="PUT", data=privilege))
 
     def __repr__(self):
         return '<Repository: %s\'s %s>' % (self.username, self.slug)
